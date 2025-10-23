@@ -1,0 +1,395 @@
+{
+  "info": {
+    "name": "Gefarm API v2.1 - Complete",
+    "_postman_id": "gefarm-api-v2-complete",
+    "description": "Collection completa per testare tutte le API di Gefarm con fix bug dispositivi",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://simonaserra.altervista.org/gefarm_api_v2",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔓 Public Endpoints",
+      "item": [
+        {
+          "name": "Test API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "test"]
+            },
+            "description": "Verifica che l'API sia operativa e restituisce info su PHP e database"
+          }
+        },
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token salvato:', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mario.rossi@test.com\",\n  \"password\": \"Test1234!\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"avatar_color\": \"#00853d\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registra un nuovo utente. Il token viene salvato automaticamente nella variabile {{token}}"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token salvato:', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mario.rossi@test.com\",\n  \"password\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login utente esistente. Il token viene salvato automaticamente nella variabile {{token}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔃 Reset Password",
+      "item": [
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mario.rossi@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password_reset_request",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password_reset_request"]
+            },
+            "description": "Richiede il reset della password. Un token verrà inviato all'email se esiste nel sistema."
+          }
+        },
+        {
+          "name": "Confirm Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"your-reset-token\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password_reset_confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password_reset_confirm"]
+            },
+            "description": "Conferma il reset della password utilizzando il token ricevuto via email"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 User Endpoints",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Ottieni il profilo dell'utente autenticato"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi Updated\",\n  \"avatar_color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/update_profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "update_profile"]
+            },
+            "description": "Aggiorna il profilo dell'utente (nome, cognome, avatar_color)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📱 Device Endpoints",
+      "item": [
+        {
+          "name": "Register New Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"EMC-FIX-TEST\",\n  \"device_type\": \"emcengine\",\n  \"nome_dispositivo\": \"Il mio EMC Engine\",\n  \"ssid_ap\": \"EMC-FIX-TEST\",\n  \"chain2_active\": 1,\n  \"firmware_version\": \"1.0.0\",\n  \"nickname\": \"Casa principale\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devices/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "devices", "register"]
+            },
+            "description": "CREA un nuovo dispositivo nel sistema e lo associa automaticamente all'utente come owner"
+          }
+        },
+        {
+          "name": "Add Existing Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"EMC-001-TEST\",\n  \"role\": \"user\",\n  \"nickname\": \"Dispositivo condiviso\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devices/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "devices", "add"]
+            },
+            "description": "ASSOCIA un dispositivo già esistente all'utente"
+          }
+        },
+        {
+          "name": "List User Devices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devices/list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "devices", "list"]
+            },
+            "description": "Ottieni la lista di tutti i dispositivi associati all'utente autenticato"
+          }
+        },
+        {
+          "name": "Get Device Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devices/details?device_id=EMC-FIX-TEST",
+              "host": ["{{base_url}}"],
+              "path": ["api", "devices", "details"],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "EMC-FIX-TEST"
+                }
+              ]
+            },
+            "description": "Ottieni i dettagli completi di un dispositivo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚡ Meter Data (Chain2)",
+      "item": [
+        {
+          "name": "Submit Meter Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"EMC-FIX-TEST\",\n  \"cf\": \"RSSMRA80A01H501U\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 123\",\n  \"zip_code\": \"00100\",\n  \"citta\": \"Roma\",\n  \"provincia\": \"RM\",\n  \"pod\": \"IT001E12345678\",\n  \"email\": \"mario.rossi@test.com\",\n  \"telefono\": \"3451234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/meter/submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "meter", "submit"]
+            },
+            "description": "Invia dati del contatore (Chain2) per un dispositivo"
+          }
+        },
+        {
+          "name": "Get Active Meter Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/meter/active?device_id=EMC-FIX-TEST",
+              "host": ["{{base_url}}"],
+              "path": ["api", "meter", "active"],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "EMC-FIX-TEST"
+                }
+              ]
+            },
+            "description": "Ottieni i dati contatore attivi per un dispositivo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🐛 Debug Endpoints",
+      "item": [
+        {
+          "name": "Database Structure",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/debug/database_structure",
+              "host": ["{{base_url}}"],
+              "path": ["api", "debug", "database_structure"]
+            },
+            "description": "⚠️ DEBUG ONLY - Mostra la struttura di tutte le tabelle gefarm_*"
+          }
+        },
+        {
+          "name": "User Devices Associations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/debug/user_devices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "debug", "user_devices"]
+            },
+            "description": "⚠️ DEBUG ONLY - Mostra associazioni utente-dispositivi"
+          }
+        }
+      ]
+    }
+  ]
+}

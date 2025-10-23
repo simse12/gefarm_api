@@ -1,0 +1,239 @@
+<?php
+// Ottieni il token dall'URL
+$token = isset($_GET['token']) ? htmlspecialchars($_GET['token']) : '';
+?>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gefarm - Reset Password</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+        }
+        
+        h1 {
+            color: #00853d;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            border-color: #00853d;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 133, 61, 0.2);
+        }
+        
+        button {
+            background-color: #00853d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #006b31;
+        }
+        
+        .error-message {
+            color: #e53935;
+            margin-top: 5px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .password-requirements {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            color: #00853d;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gefarm - Reset Password</h1>
+        
+        <div class="success-message" id="successMessage">
+            Password reimpostata con successo! Ora puoi accedere con la tua nuova password.
+        </div>
+        
+        <div id="resetForm">
+            <div class="form-group">
+                <label for="password">Nuova Password</label>
+                <input type="password" id="password" placeholder="Inserisci la nuova password">
+                <div class="error-message" id="passwordError"></div>
+                <div class="password-requirements">
+                    La password deve contenere almeno 8 caratteri, una lettera maiuscola, una lettera minuscola e un numero.
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Conferma Password</label>
+                <input type="password" id="confirmPassword" placeholder="Conferma la nuova password">
+                <div class="error-message" id="confirmPasswordError"></div>
+            </div>
+            
+            <div class="form-group">
+                <button id="submitButton">Reimposta Password</button>
+                <div class="error-message" id="generalError"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Il token viene passato direttamente dal PHP
+        const token = "<?php echo $token; ?>";
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!token) {
+                document.getElementById('generalError').textContent = 'Token mancante o non valido. Richiedi un nuovo link di reset.';
+                document.getElementById('generalError').style.display = 'block';
+                document.getElementById('submitButton').disabled = true;
+                return;
+            }
+            
+            // Configura URL API
+            const apiUrl = 'https://simonaserra.altervista.org/gefarm_api_v2/api/auth/password_reset_confirm';
+            
+            // Gestisci invio form
+            document.getElementById('submitButton').addEventListener('click', function() {
+                resetErrors();
+                
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // Validazione
+                let isValid = true;
+                
+                if (!password) {
+                    showError('passwordError', 'Inserisci una password');
+                    isValid = false;
+                } else if (password.length < 8) {
+                    showError('passwordError', 'La password deve contenere almeno 8 caratteri');
+                    isValid = false;
+                } else if (!/[A-Z]/.test(password)) {
+                    showError('passwordError', 'La password deve contenere almeno una lettera maiuscola');
+                    isValid = false;
+                } else if (!/[a-z]/.test(password)) {
+                    showError('passwordError', 'La password deve contenere almeno una lettera minuscola');
+                    isValid = false;
+                } else if (!/[0-9]/.test(password)) {
+                    showError('passwordError', 'La password deve contenere almeno un numero');
+                    isValid = false;
+                }
+                
+                if (password !== confirmPassword) {
+                    showError('confirmPasswordError', 'Le password non coincidono');
+                    isValid = false;
+                }
+                
+                if (isValid) {
+                    // Disabilita il bottone durante l'invio
+                    document.getElementById('submitButton').disabled = true;
+                    document.getElementById('submitButton').textContent = 'Elaborazione in corso...';
+                    
+                    // Invia richiesta API
+                    fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            token: token,
+                            new_password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Mostra messaggio di successo
+                            document.getElementById('resetForm').style.display = 'none';
+                            document.getElementById('successMessage').style.display = 'block';
+                        } else {
+                            // Mostra errore
+                            showError('generalError', data.message || 'Si è verificato un errore durante il reset della password');
+                            document.getElementById('submitButton').disabled = false;
+                            document.getElementById('submitButton').textContent = 'Reimposta Password';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showError('generalError', 'Errore di connessione. Riprova più tardi.');
+                        document.getElementById('submitButton').disabled = false;
+                        document.getElementById('submitButton').textContent = 'Reimposta Password';
+                    });
+                }
+            });
+            
+            // Funzioni helper
+            function showError(elementId, message) {
+                const errorElement = document.getElementById(elementId);
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+            
+            function resetErrors() {
+                const errorElements = document.querySelectorAll('.error-message');
+                errorElements.forEach(function(element) {
+                    element.style.display = 'none';
+                    element.textContent = '';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

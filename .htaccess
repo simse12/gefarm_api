@@ -1,0 +1,69 @@
+# GeFarm API - .htaccess
+# Configurazione Apache per routing e sicurezza
+
+# Abilita RewriteEngine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /gefarm_api_v2/
+    
+    # Forza HTTPS in produzione (decommenta quando pronto)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST%}%{REQUEST_URI} [R=301,L]
+    
+    # Routing API
+    # /api/test -> /api/test.php
+    # /api/auth/login -> /api/auth/login.php
+    
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.+)$ api/$1.php [L,QSA]
+</IfModule>
+
+# Headers sicurezza
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Nascondi informazioni PHP
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_value error_reporting E_ALL
+    php_flag log_errors On
+</IfModule>
+
+# Blocca accesso a file sensibili
+<FilesMatch "\.(md|sql|json|log|env)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Blocca accesso alle directory config e models
+<IfModule mod_rewrite.c>
+    RewriteRule ^(config|models|middleware|utils)/ - [F,L]
+</IfModule>
+
+# Abilita CORS
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+    Header always set Access-Control-Max-Age "3600"
+</IfModule>
+
+# Compressione
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/javascript
+</IfModule>
+
+# Cache per risorse statiche
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>
