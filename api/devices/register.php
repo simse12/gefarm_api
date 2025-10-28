@@ -38,17 +38,25 @@ try {
     }
     
     // Validazione campi richiesti
-    $required_fields = ['device_id', 'device_type', 'nome_dispositivo'];
+    $required_fields = ['device_id', 'device_family', 'device_type', 'nome_dispositivo']; 
     $missing = [];
     
     foreach ($required_fields as $field) {
-        if (empty($input[$field])) {
+        if (!isset($input[$field]) || (is_string($input[$field]) && trim($input[$field]) === '')) {
             $missing[] = $field;
         }
     }
     
     if (!empty($missing)) {
         Response::validationError($missing, 'Campi obbligatori mancanti: ' . implode(', ', $missing));
+    }
+    
+    // Validazione device_family (ENUM)
+    $valid_families = ['uno', 'duo', 'caricar', 'emc'];
+    if (!in_array($input['device_family'], $valid_families)) {
+        Response::validationError(
+            ['device_family' => 'Famiglia dispositivo non valida. Valori ammessi: ' . implode(', ', $valid_families)]
+        );
     }
     
     // Validazione device_type (ENUM)
@@ -59,14 +67,14 @@ try {
         );
     }
     
-    // Validazione device_id (formato EMC-XXX-NNNNNN)
-    if (!preg_match('/^EMC-[A-Z0-9]{3}-[A-Z0-9]+$/i', $input['device_id'])) {
+    // Validazione device_id (formato emcengine-xxxxx)
+    if (!preg_match('/^emcengine-[0-9]+$/i', $input['device_id'])) { 
         Response::validationError(
-            ['device_id' => 'Formato device_id non valido. Esempio: EMC-001-123456']
+            ['device_id' => 'Formato device_id non valido. Deve essere: emcengine-NNNNNN']
         );
     }
     
-    // Verifica se dispositivo già esiste
+    // Verifica se dispositivo già esiste (device_id è una chiave unica)
     $device = new Device();
     $existing = $device->getByDeviceId($input['device_id']);
     
@@ -76,20 +84,39 @@ try {
     
     // Crea dispositivo
     $device->device_id = $input['device_id'];
+    $device->device_family = $input['device_family'];
     $device->device_type = $input['device_type'];
     $device->nome_dispositivo = $input['nome_dispositivo'];
-    $device->ssid_ap = $input['ssid_ap'] ?? null;
+    $device->ssid_ap = $input['device_id']; // OBBLIGATORIO: ssid_ap è uguale a device_id
+    
+    // Gestione password: non viene inviata, impostiamo a NULL.
+    $device->ssid_password = null; 
+    
+    // Campi opzionali
     $device->chain2_active = isset($input['chain2_active']) ? (int)$input['chain2_active'] : 0;
     $device->firmware_version = $input['firmware_version'] ?? null;
     
+    // Campi Dataplate: Assegnati con operatore null coalescing (??) per supportare NULL
+    $device->du = $input['du'] ?? null;
+    $device->k1 = $input['k1'] ?? null;
+    $device->k2 = $input['k2'] ?? null;
+    $device->fiv = $input['fiv'] ?? null;
+    
+    // Imposta dataplate_synced_at solo se almeno un campo dataplate è presente
+    if ($device->du !== null || $device->k1 !== null || $device->k2 !== null || $device->fiv !== null) {
+        $device->dataplate_synced_at = date('Y-m-d H:i:s');
+    } else {
+        $device->dataplate_synced_at = null;
+    }
+
     // Log per debug
     error_log("Creating device: " . json_encode([
         'device_id' => $device->device_id,
         'device_type' => $device->device_type,
+        'device_family' => $device->device_family,
         'nome_dispositivo' => $device->nome_dispositivo,
         'ssid_ap' => $device->ssid_ap,
-        'chain2_active' => $device->chain2_active,
-        'firmware_version' => $device->firmware_version
+        'du' => $device->du
     ]));
     
     if (!$device->create()) {
@@ -99,15 +126,19 @@ try {
     
     error_log("Device created with ID: {$device->id}");
     
-    // Associa automaticamente il dispositivo all'utente come "owner"
+    // Associa automaticamente il dispositivo all'utente
     $nickname = $input['nickname'] ?? null;
     
-    if (!$device->addToUser($auth_data->user_id, $device->id, 'owner', $nickname)) {
-        error_log("Failed to associate device {$device->id} to user {$auth_data->user_id}");
+    // ⭐️ AGGIORNAMENTO CHIAVE: Gestione del flag is_meter_owner
+    $is_meter_owner = isset($input['is_meter_owner']) ? (bool)$input['is_meter_owner'] : false;
+    
+    // Passa il nuovo flag al metodo addToUser
+    if (!$device->addToUser($auth_data->user_id, $device->id, 'owner', $nickname, $is_meter_owner)) {
+        error_log("Failed to associate device {$device->id} to user {$auth_data->user_id} with is_meter_owner={$is_meter_owner}");
         Response::serverError('Dispositivo creato ma errore nell\'associazione all\'utente. Contatta il supporto.');
     }
     
-    error_log("Device {$device->id} associated to user {$auth_data->user_id} as owner");
+    error_log("Device {$device->id} associated to user {$auth_data->user_id} as owner (Meter Owner: " . ($is_meter_owner ? 'Yes' : 'No') . ")");
     
     // Ottieni dispositivo completo
     $device_data = $device->getById($device->id);
@@ -116,7 +147,8 @@ try {
         'device' => $device_data,
         'association' => [
             'role' => 'owner',
-            'nickname' => $nickname
+            'nickname' => $nickname,
+            'is_meter_owner' => $is_meter_owner // Ritorna lo stato dell'owner
         ]
     ], 'Dispositivo registrato e associato con successo', 201);
     

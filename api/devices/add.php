@@ -50,22 +50,31 @@ try {
     }
     
     // Associa dispositivo a utente
+    // I ruoli 'owner' e 'user' sono i più comuni per l'app utente. 'technician' è per API separate.
     $role = $input['role'] ?? 'user'; // owner, user, technician
     $nickname = $input['nickname'] ?? null;
     
-    if ($device->addToUser($auth_data->user_id, $existing_device['id'], $role, $nickname)) {
+    // ⭐️ AGGIORNAMENTO CHIAVE: Gestione del flag is_meter_owner
+    // Accetta il flag is_meter_owner (default FALSE se non specificato)
+    $is_meter_owner = isset($input['is_meter_owner']) ? (bool)$input['is_meter_owner'] : false;
+    
+    // Passa il nuovo flag al metodo addToUser
+    if ($device->addToUser($auth_data->user_id, $existing_device['id'], $role, $nickname, $is_meter_owner)) {
         
         // Ottieni dispositivo completo
         $device_data = $device->getById($existing_device['id']);
         
         Response::success([
             'device' => $device_data,
-            'role' => $role,
-            'nickname' => $nickname
+            'association' => [ // Raggruppiamo i dati di associazione
+                'role' => $role,
+                'nickname' => $nickname,
+                'is_meter_owner' => $is_meter_owner // Ritorna lo stato dell'owner
+            ]
         ], 'Dispositivo aggiunto con successo', 201);
         
     } else {
-        Response::serverError('Errore durante l\'aggiunta del dispositivo');
+        Response::serverError('Errore durante l\'aggiunta del dispositivo. Potrebbe essere già associato con lo stesso ruolo.');
     }
     
 } catch (Exception $e) {

@@ -49,6 +49,17 @@ try {
     $login_result = $user->login($input['email'], $input['password']);
     
     if (!$login_result['success']) {
+        // --------------------------------------------------
+        // ✅ GESTIONE BLOCCO PER UTENTE NON VERIFICATO
+        // --------------------------------------------------
+        if (isset($login_result['verified']) && $login_result['verified'] === false) {
+            // L'utente esiste e la password è corretta, ma l'email non è verificata.
+            // Rispondiamo con 403 Forbidden.
+            Response::error($login_result['error'], 403);
+        }
+        // --------------------------------------------------
+        
+        // Per tutti gli altri errori (password o email errate)
         Response::unauthorized($login_result['error']);
     }
     

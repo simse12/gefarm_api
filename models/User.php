@@ -4,7 +4,6 @@
  * Gestione tabella gefarm_users
  */
 
-// Includi il database in modo sicuro
 $databasePath = __DIR__ . '/../config/database.php';
 if (!file_exists($databasePath)) {
     http_response_code(500);
@@ -12,7 +11,6 @@ if (!file_exists($databasePath)) {
 }
 require_once $databasePath;
 
-// Verifica che la classe esista
 if (!class_exists('Database')) {
     http_response_code(500);
     die(json_encode(['success' => false, 'message' => 'Classe Database non definita']));
@@ -25,9 +23,8 @@ class User {
     private $conn;
     private $table = 'gefarm_users';
     
-    // Proprietà corrispondenti alle colonne della tabella
+    // Proprietà
     public $id;
-    public $device_id;
     public $email;
     public $password_hash;
     public $nome;
@@ -43,13 +40,20 @@ class User {
     }
     
     /**
+     * Restituisce la connessione (necessario per le transazioni negli endpoint)
+     */
+    public function getConnection() {
+        return $this->conn;
+    }
+    
+    /**
      * Crea nuovo utente
      */
     public function create() {
         $query = "INSERT INTO " . $this->table . " 
-                  (email, password_hash, nome, cognome, avatar_color, email_verified) 
-                  VALUES 
-                  (:email, :password_hash, :nome, :cognome, :avatar_color, :email_verified)";
+                     (email, password_hash, nome, cognome, avatar_color, email_verified) 
+                     VALUES 
+                     (:email, :password_hash, :nome, :cognome, :avatar_color, :email_verified)";
         
         $stmt = $this->conn->prepare($query);
         
@@ -61,7 +65,8 @@ class User {
         $this->email_verified = $this->email_verified ?? 0;
         
         // Hash password
-        $this->password_hash = EncryptionConfig::hashPassword($this->password_hash);
+        $password_to_hash = $this->password_hash;
+        $this->password_hash = EncryptionConfig::hashPassword($password_to_hash);
         
         // Bind parametri
         $stmt->bindParam(':email', $this->email);
@@ -76,14 +81,33 @@ class User {
             return true;
         }
         
+        $errorInfo = $stmt->errorInfo();
+        error_log("User create failed: " . json_encode($errorInfo));
         return false;
     }
     
     /**
+     * Ottieni utente per Email
+     */
+    public function getByEmail($email) {
+        $query = "SELECT id, password_hash, email, nome, cognome, avatar_path, avatar_color, 
+                     email_verified, created_at, updated_at 
+                     FROM " . $this->table . " WHERE email = :email LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Login utente
+     * ✅ CONTROLLA ANCHE email_verified
      */
     public function login($email, $password) {
-        $query = "SELECT * FROM " . $this->table . " WHERE email = :email LIMIT 1";
+        // Seleziona tutti i campi necessari, inclusa email_verified
+        $query = "SELECT id, password_hash, email, nome, cognome, email_verified FROM " . $this->table . " WHERE email = :email LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -94,12 +118,17 @@ class User {
             return ['success' => false, 'error' => 'Credenziali non valide'];
         }
         
-        // Verifica password
+        // 1. Verifica password
         if (!EncryptionConfig::verifyPassword($password, $user['password_hash'])) {
             return ['success' => false, 'error' => 'Credenziali non valide'];
         }
+
+        // 2. ✅ NUOVO: Verifica se l'email è stata verificata
+        if (!$user['email_verified']) {
+            return ['success' => false, 'error' => 'Account non verificato. Controlla la tua email per il codice di attivazione.', 'verified' => false];
+        }
         
-        // Non restituire la password
+        // 3. Login riuscito
         unset($user['password_hash']);
         
         return ['success' => true, 'user' => $user];
@@ -121,9 +150,9 @@ class User {
      * Ottieni utente per ID
      */
     public function getById($id) {
-        $query = "SELECT id, device_id, email, nome, cognome, avatar_path, avatar_color, 
-                  email_verified, created_at, updated_at 
-                  FROM " . $this->table . " WHERE id = :id LIMIT 1";
+        $query = "SELECT id, email, nome, cognome, avatar_path, avatar_color, 
+                     email_verified, created_at, updated_at 
+                     FROM " . $this->table . " WHERE id = :id LIMIT 1";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
@@ -139,7 +168,6 @@ class User {
         $fields = [];
         $params = [':id' => $id];
         
-        // Campi aggiornabili
         $allowed_fields = ['nome', 'cognome', 'avatar_path', 'avatar_color'];
         
         foreach ($allowed_fields as $field) {
@@ -200,5 +228,46 @@ class User {
         
         return $stmt->execute();
     }
+    
+    // ===================================
+    // ✅ METODI DI VERIFICA EMAIL AGGIUNTI
+    // ===================================
+
+    /**
+     * Salva un token di verifica/reset nella tabella gefarm_password_reset_tokens
+     */
+    public function createToken($user_id, $token, $type = 'verify', $expires_at = null) {
+        try {
+            $query = "INSERT INTO gefarm_password_reset_tokens 
+                        (user_id, type, token, expires_at) 
+                        VALUES (:user_id, :type, :token, :expires_at)";
+            
+            $stmt = $this->conn->prepare($query);
+            
+            $stmt->bindValue(':user_id', $user_id, PDO::PARAM_INT);
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+            $stmt->bindValue(':token', $token, PDO::PARAM_STR);
+            // Imposta scadenza a 24 ore se non specificata
+            $default_expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
+            $expiry = $expires_at ?? $default_expiry;
+            $stmt->bindValue(':expires_at', $expiry, PDO::PARAM_STR);
+            
+            return $stmt->execute();
+            
+        } catch (Exception $e) {
+            error_log("createToken failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Marca l'utente come verificato nella tabella gefarm_users
+     */
+    public function markEmailVerified($user_id) {
+        $query = "UPDATE " . $this->table . " SET email_verified = TRUE WHERE id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $user_id);
+        
+        return $stmt->execute();
+    }
 }
-?>

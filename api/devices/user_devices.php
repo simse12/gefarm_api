@@ -41,7 +41,8 @@ try {
                 ud.role,
                 ud.nickname,
                 ud.is_favorite,
-                ud.added_at
+                ud.added_at,
+                ud.is_meter_owner  /* ✅ AGGIUNTO: Nuovo campo per debug */
               FROM gefarm_user_devices ud
               LEFT JOIN gefarm_users u ON ud.user_id = u.id
               LEFT JOIN gefarm_devices d ON ud.device_id = d.id
@@ -51,8 +52,7 @@ try {
     $associations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Lista dispositivi senza associazioni
-    $query_orphans = "SELECT d.* 
-                      FROM gefarm_devices d
+    $query_orphans = "SELECT d.* FROM gefarm_devices d
                       LEFT JOIN gefarm_user_devices ud ON d.id = ud.device_id
                       WHERE ud.device_id IS NULL";
     

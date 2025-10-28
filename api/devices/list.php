@@ -31,7 +31,8 @@ try {
     
     // Ottieni dispositivi
     $device = new Device();
-    $devices = $device->getUserDevices($auth_data->user_id);
+    // ✅ ASSUNZIONE: Il metodo getUserDevices ora include 'is_meter_owner' nei risultati
+    $devices = $device->getUserDevices($auth_data->user_id); 
     
     Response::success([
         'devices' => $devices,

@@ -1,25 +1,15 @@
 <?php
 /**
- * User Model - GeFarm API
- * Gestione tabella gefarm_users
+ * DeviceMeterData Model - GeFarm API
+ * Gestione tabella gefarm_device_meter_data
  */
 
-// Includi il database in modo sicuro
 $databasePath = __DIR__ . '/../config/database.php';
 if (!file_exists($databasePath)) {
-    http_response_code(500);
-    die(json_encode(['success' => false, 'message' => 'File database.php non trovato']));
+    throw new Exception('File database.php non trovato');
 }
 require_once $databasePath;
-
-// Verifica che la classe esista
-if (!class_exists('Database')) {
-    http_response_code(500);
-    die(json_encode(['success' => false, 'message' => 'Classe Database non definita']));
-}
-
 require_once __DIR__ . '/../config/encryption_config.php';
-
 
 class DeviceMeterData {
     private $conn;
@@ -28,6 +18,7 @@ class DeviceMeterData {
     // Proprietà corrispondenti alle colonne della tabella
     public $id;
     public $device_id;
+    public $inserted_by_user_id; 
     public $cf; // Codice Fiscale (criptato)
     public $nome;
     public $cognome;
@@ -49,13 +40,14 @@ class DeviceMeterData {
     
     /**
      * Crea nuovo record dati contatore
+     * ✅ CORRETTO: Aggiunta gestione inserted_by_user_id nel bind.
      */
     public function create() {
         $query = "INSERT INTO " . $this->table . " 
-                  (device_id, cf, nome, cognome, indirizzo, zip_code, citta, provincia, 
+                  (device_id, inserted_by_user_id, cf, nome, cognome, indirizzo, zip_code, citta, provincia, 
                    pod, email, telefono, is_active) 
                   VALUES 
-                  (:device_id, :cf, :nome, :cognome, :indirizzo, :zip_code, :citta, :provincia,
+                  (:device_id, :inserted_by_user_id, :cf, :nome, :cognome, :indirizzo, :zip_code, :citta, :provincia,
                    :pod, :email, :telefono, :is_active)";
         
         $stmt = $this->conn->prepare($query);
@@ -72,30 +64,35 @@ class DeviceMeterData {
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->is_active = $this->is_active ?? 1;
         
-        // Bind
-        $stmt->bindParam(':device_id', $this->device_id);
-        $stmt->bindParam(':cf', $cf_encrypted);
-        $stmt->bindParam(':nome', $this->nome);
-        $stmt->bindParam(':cognome', $this->cognome);
-        $stmt->bindParam(':indirizzo', $this->indirizzo);
-        $stmt->bindParam(':zip_code', $this->zip_code);
-        $stmt->bindParam(':citta', $this->citta);
-        $stmt->bindParam(':provincia', $this->provincia);
-        $stmt->bindParam(':pod', $this->pod);
-        $stmt->bindParam(':email', $this->email);
-        $stmt->bindParam(':telefono', $this->telefono);
-        $stmt->bindParam(':is_active', $this->is_active);
+        // Bind con gestione NULL per i campi opzionali
+        $stmt->bindValue(':device_id', $this->device_id, PDO::PARAM_INT);
+        // ✅ Gestione NULL per l'utente inseritore
+        $stmt->bindValue(':inserted_by_user_id', $this->inserted_by_user_id, $this->inserted_by_user_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT); 
+        $stmt->bindValue(':cf', $cf_encrypted, PDO::PARAM_STR);
+        $stmt->bindValue(':nome', $this->nome, PDO::PARAM_STR);
+        $stmt->bindValue(':cognome', $this->cognome, PDO::PARAM_STR);
+        $stmt->bindValue(':indirizzo', $this->indirizzo, PDO::PARAM_STR);
+        $stmt->bindValue(':zip_code', $this->zip_code, PDO::PARAM_STR);
+        $stmt->bindValue(':citta', $this->citta, PDO::PARAM_STR);
+        $stmt->bindValue(':provincia', $this->provincia, PDO::PARAM_STR);
+        $stmt->bindValue(':pod', $this->pod, $this->pod === null ? PDO::PARAM_NULL : PDO::PARAM_STR); 
+        $stmt->bindValue(':email', $this->email, PDO::PARAM_STR);
+        $stmt->bindValue(':telefono', $this->telefono, $this->telefono === null ? PDO::PARAM_NULL : PDO::PARAM_STR); 
+        $stmt->bindValue(':is_active', $this->is_active, PDO::PARAM_INT);
         
         if ($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
             return true;
         }
         
+        $errorInfo = $stmt->errorInfo();
+        error_log("DeviceMeterData create failed: " . json_encode($errorInfo));
         return false;
     }
     
     /**
      * Ottieni dati attivi per un dispositivo
+     * ✅ CORRETTO: Decrittografia del CF.
      */
     public function getActiveByDeviceId($device_id) {
         $query = "SELECT * FROM " . $this->table . " 
@@ -178,4 +175,3 @@ class DeviceMeterData {
         return $stmt->execute();
     }
 }
-?>

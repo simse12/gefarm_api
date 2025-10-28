@@ -1,6 +1,6 @@
 CREATE TABLE `gefarm_users` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,  -- ✅ CHIAVE UNICA
-    `email` VARCHAR(100) NOT NULL,        -- ❌ 
+    `id` INT AUTO_INCREMENT PRIMARY KEY, 
+    `email` VARCHAR(100) UNIQUE NOT NULL,  -- ✅ Modificato in UNIQUE
     `password_hash` VARCHAR(255) NOT NULL,
     `nome` VARCHAR(100) NOT NULL,
     `cognome` VARCHAR(100) NOT NULL,
@@ -10,17 +10,18 @@ CREATE TABLE `gefarm_users` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    INDEX `idx_email` (`email`)  -- Solo INDEX, non UNIQUE
+    INDEX `idx_email` (`email`) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 CREATE TABLE `gefarm_devices` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,  -- ✅ CHIAVE INTERNA
     `device_id` VARCHAR(50) UNIQUE NOT NULL,  -- ✅ QR Code (EMC-C20D10) - UNICO
-    `device_type` ENUM('emcengine', 'emcinverter', 'emcbox', 'uno', 'duo') NOT NULL,
+    `device_family` ENUM('uno', 'duo', 'caricar', 'emc' ) NOT NULL,
+    `device_type` ENUM('emcengine', 'emcinverter', 'emcbox') NOT NULL,
     `nome_dispositivo` VARCHAR(255) DEFAULT 'Dispositivo GeFarm',
     `ssid_ap` VARCHAR(100) NULL,
-    `device_password` VARCHAR(255) NULL,
+    `ssid_password` VARCHAR(255) NULL,
     `first_setup_completed` BOOLEAN DEFAULT FALSE,
     `chain2_active` BOOLEAN DEFAULT FALSE,
     `firmware_version` VARCHAR(20) NULL,
@@ -40,28 +41,17 @@ CREATE TABLE `gefarm_devices` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-CREATE TABLE `gefarm_devices_dataplate` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `device_id` INT NOT NULL,
-    `du` VARCHAR(50) NULL,
-    `k1` VARCHAR(50) NULL,
-    `k2` VARCHAR(50) NULL,
-    `fiv` VARCHAR(50) NULL,
-    `synced_at` TIMESTAMP NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`device_id`) REFERENCES `gefarm_devices`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `unique_device_dataplate` (`device_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
 CREATE TABLE `gefarm_user_devices` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT NOT NULL,      -- ✅ FK a gefarm_users.id
-    `device_id` INT NOT NULL,    -- ✅ FK a gefarm_devices.id (interno!)
+    `user_id` INT NOT NULL, 
+    `device_id` INT NOT NULL, 
     `role` ENUM('owner', 'user', 'technician') DEFAULT 'user',
     `nickname` VARCHAR(100) NULL,
     `is_favorite` BOOLEAN DEFAULT FALSE,
+    
+    -- ✅ NUOVO CAMPO: Indica se l'utente (user_id) è l'intestatario della fornitura (cf in gefarm_device_meter_data)
+    `is_meter_owner` BOOLEAN DEFAULT FALSE, 
+    
     `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (`user_id`) REFERENCES `gefarm_users`(`id`) ON DELETE CASCADE,
@@ -74,11 +64,11 @@ CREATE TABLE `gefarm_user_devices` (
 
 CREATE TABLE `gefarm_device_meter_data` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `device_id` INT NOT NULL,  -- ✅ FK a gefarm_devices.id
-    `inserted_by_user_id` INT NULL,  -- Chi ha inserito (opzionale)
+    `device_id` INT NOT NULL,
+    `inserted_by_user_id` INT NULL,
     
-    -- ✅ CF = CHIAVE UNICA per intestatario
-    `cf` VARCHAR(255) UNIQUE NOT NULL COMMENT 'Codice Fiscale CRIPTATO - UNICO',
+    -- Colonna cf_owner_encrypted non e' piu' UNIQUE per permettere la tracciabilita'
+    `cf_owner_encrypted` VARCHAR(255) NOT NULL COMMENT 'Codice Fiscale CRIPTATO',
     
     `nome` VARCHAR(100) NOT NULL,
     `cognome` VARCHAR(100) NOT NULL,
@@ -99,7 +89,7 @@ CREATE TABLE `gefarm_device_meter_data` (
     FOREIGN KEY (`inserted_by_user_id`) REFERENCES `gefarm_users`(`id`) ON DELETE SET NULL,
     
     INDEX `idx_device_active` (`device_id`, `is_active`),
-    INDEX `idx_cf` (`cf`(100))
+    INDEX `idx_cf` (`cf_owner_encrypted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `gefarm_thingsboard_configs` (
@@ -132,11 +122,13 @@ CREATE TABLE `gefarm_user_sessions` (
 CREATE TABLE `gefarm_password_reset_tokens` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
+    `type` VARCHAR(20) NOT NULL DEFAULT 'reset',  -- ✅ AGGIUNTO: 'verify' o 'reset'
     `token` VARCHAR(100) UNIQUE NOT NULL,
     `expires_at` TIMESTAMP NOT NULL,
     `used` BOOLEAN DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `gefarm_users`(`id`) ON DELETE CASCADE,
-    INDEX `idx_token` (`token`)
+    INDEX `idx_token` (`token`),
+    INDEX `idx_user_type` (`user_id`, `type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

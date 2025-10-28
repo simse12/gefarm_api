@@ -20,6 +20,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Device.php';
 require_once __DIR__ . '/../../models/DeviceMeterData.php';
 require_once __DIR__ . '/../../utils/response.php';
+require_once __DIR__ . '/../../utils/encryption_config.php'; 
 
 // Solo GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -48,6 +49,7 @@ try {
     // Verifica che l'utente abbia accesso a questo dispositivo
     $user_devices = $device->getUserDevices($auth_data->user_id);
     $has_access = false;
+    $is_meter_owner = false; // Flag per l'intestatario
     
     foreach ($user_devices as $ud) {
         if ($ud['id'] == $device_data['id']) {
@@ -55,6 +57,10 @@ try {
             $device_data['user_role'] = $ud['role'];
             $device_data['nickname'] = $ud['nickname'];
             $device_data['is_favorite'] = $ud['is_favorite'];
+            
+            // Recupera lo status di intestatario
+            $is_meter_owner = (bool)$ud['is_meter_owner'];
+            $device_data['is_meter_owner'] = $is_meter_owner; 
             break;
         }
     }
@@ -66,6 +72,27 @@ try {
     // Ottieni dati contatore attivo
     $meter = new DeviceMeterData();
     $meter_data = $meter->getActiveByDeviceId($device_data['id']);
+    
+    // --- GESTIONE DEI DATI SENSIBILI (Codice Fiscale) ---
+    if ($meter_data) {
+        $meter_data['codice_fiscale_owner'] = null; // Inizializza
+        
+        // Decripta il CF SOLO se l'utente è l'intestatario della fornitura
+        if ($is_meter_owner && !empty($meter_data['cf_owner_encrypted'])) {
+            try {
+                // ✅ MODIFICA CHIAVE: Utilizza la classe EncryptionConfig
+                $decrypted_cf = EncryptionConfig::decrypt($meter_data['cf_owner_encrypted']);
+                $meter_data['codice_fiscale_owner'] = $decrypted_cf;
+            } catch (Exception $e) {
+                error_log("Decryption failed for device {$device_data['id']}: " . $e->getMessage());
+                // Non fallire l'intera richiesta, ma logga l'errore e lascia il CF a null
+            }
+        }
+        
+        // Rimuovi sempre la versione criptata prima di inviare la risposta
+        unset($meter_data['cf_owner_encrypted']);
+    }
+    // --------------------------------------------------------
     
     Response::success([
         'device' => $device_data,
