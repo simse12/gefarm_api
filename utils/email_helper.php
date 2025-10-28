@@ -9,7 +9,7 @@ class EmailHelper {
     // Configurazione (potresti spostare questi valori nel .env o config)
     private static $sender_email = 'noreply@gefarm.com';
     private static $sender_name = 'Gefarm Support';
-    private static $support_email = 'support@gefarm.com';
+    private static $support_email = 'gefarmapp@gmail.com';
     
     /**
      * Invia email di reset password con token
@@ -22,7 +22,7 @@ class EmailHelper {
     public static function sendPasswordResetToken($email, $name, $token) {
         // URL frontend per il reset (da configurare)
       // URL frontend per il reset
-        $reset_url = "https://simonaserra.altervista.org/gefarm_api_v2/reset-password.php?token=$token";
+        $reset_url = "https://gefarmdb.altervista.org/gefarm_api_v2/reset-password.php?token=$token";
         
         $subject = "Gefarm - Reset Password";
         

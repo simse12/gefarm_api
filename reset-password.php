@@ -147,7 +147,7 @@ $token = isset($_GET['token']) ? htmlspecialchars($_GET['token']) : '';
             }
             
             // Configura URL API
-            const apiUrl = 'https://simonaserra.altervista.org/gefarm_api_v2/api/auth/password_reset_confirm';
+            const apiUrl = 'https://gefarmdb.altervista.org/gefarm_api_v2/api/auth/password_reset_confirm';
             
             // Gestisci invio form
             document.getElementById('submitButton').addEventListener('click', function() {

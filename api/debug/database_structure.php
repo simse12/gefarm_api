@@ -58,7 +58,7 @@ try {
     }
     
     Response::success([
-        'database' => 'my_simonaserra',
+        'database' => 'my_gefarmdb',
         'tables_count' => count($tables),
         'tables' => $structure
     ], 'Struttura database recuperata');

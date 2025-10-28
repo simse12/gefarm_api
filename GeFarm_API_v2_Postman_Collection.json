@@ -8,7 +8,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://simonaserra.altervista.org/gefarm_api_v2",
+      "value": "https://gefarmdb.altervista.org/gefarm_api_v2",
       "type": "string"
     },
     {

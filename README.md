@@ -55,7 +55,7 @@ gefarm_api_v2/
 Carica l'intera cartella `gefarm_api_v2` sul tuo hosting via FTP/SFTP:
 
 ```
-/membri/simonaserra/gefarm_api_v2/
+/membri/gefarmdb/gefarm_api_v2/
 ```
 
 ### 2. Configura Database
@@ -66,8 +66,8 @@ Modifica le credenziali del database:
 
 ```php
 private $host = "localhost";
-private $db_name = "my_simonaserra";
-private $username = "simonaserra";
+private $db_name = "my_gefarmdb";
+private $username = "gefarmdb";
 private $password = "TUA_PASSWORD_MYSQL"; // ⚠️ INSERISCI LA TUA PASSWORD!
 ```
 
@@ -107,7 +107,7 @@ chmod 644 gefarm_api_v2/config/*.php
 Apri il browser:
 
 ```
-https://simonaserra.it/gefarm_api_v2/api/test
+https://gefarmdb.it/gefarm_api_v2/api/test
 ```
 
 Se vedi JSON con `"api_status": "OK"` → **FUNZIONA!** ✅
@@ -263,7 +263,7 @@ GET /api/debug/database_structure
 Crea una variabile `base_url`:
 
 ```
-base_url = https://simonaserra.it/gefarm_api_v2
+base_url = https://gefarmdb.it/gefarm_api_v2
 ```
 
 ### Test Flow Completo
@@ -343,7 +343,7 @@ require_once __DIR__ . '/../config/database.php'; // SBAGLIATO
 ### Errore "Database connection failed"
 
 1. Verifica credenziali in `config/database.php`
-2. Controlla che il database `my_simonaserra` esista
+2. Controlla che il database `my_gefarmdb` esista
 3. Verifica permessi utente MySQL
 
 ### Errore "Token non valido"
