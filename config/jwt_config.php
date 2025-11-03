@@ -7,7 +7,7 @@
 class JWTConfig {
     // ⚠️ IMPORTANTE: Cambia questa chiave in produzione!
     // Genera con: openssl rand -base64 32
-    public static $secret_key = "N2MxPZrb2LU3l9U4yExtzCgp4feq3808kwKOWL3F8J0=";
+    public static $secret_key = "insert secret key";
     
     // Algoritmo di firma
     public static $algorithm = 'HS256';
@@ -19,9 +19,9 @@ class JWTConfig {
     public static $refresh_token_expiration = 604800;
     
     // Issuer (chi emette il token)
-    public static $issuer = "gefarm-api";
+    public static $issuer = "insert issuer";
     
     // Audience (per chi è il token)
-    public static $audience = "gefarm-app";
+    public static $audience = "insert audience";
 }
 ?>
