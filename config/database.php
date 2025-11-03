@@ -7,8 +7,8 @@
 class Database {
     // Configurazione database
     private $host = "localhost";
-    private $db_name = "my_gefarmdb";
-    private $username = "gefarmdb";
+    private $db_name = "namedb";
+    private $username = "username";
     private $password = ""; 
     private $charset = "utf8mb4";
     
