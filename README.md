@@ -1,6 +1,6 @@
-# GeFarm API - Backend PHP v2.0
+# Gefarm API - Backend PHP v2.0
 
-API REST completa per GeFarm App - Gestione utenti, dispositivi e dati contatori.
+API REST completa per Gefarm App - Gestione utenti, dispositivi e dati contatori.
 
 ## 📋 Caratteristiche
 
@@ -125,7 +125,7 @@ GET /api/test
 ```json
 {
   "success": true,
-  "message": "GeFarm API is running",
+  "message": "Gefarm API is running",
   "data": {
     "api_status": "OK",
     "php_version": "8.0.22",
@@ -255,7 +255,7 @@ GET /api/debug/database_structure
 
 1. Apri Postman
 2. File → Import
-3. Seleziona il file `GeFarm_API_Postman.json` (se fornito)
+3. Seleziona il file `Gefarm_API_Postman.json` (se fornito)
 4. O crea manualmente le richieste seguendo gli esempi sopra
 
 ### Configura Variabili
@@ -364,6 +364,6 @@ Per problemi o domande, contatta il team di sviluppo.
 
 ## 📄 Licenza
 
-Copyright © 2025 GeFarm. Tutti i diritti riservati.
+Copyright © 2025 Gefarm. Tutti i diritti riservati.
 # gefarm_api_v2
 # gefarm_api

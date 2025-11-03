@@ -1,6 +1,6 @@
 <?php
 /**
- * Update Profile Endpoint - GeFarm API
+ * Update Profile Endpoint - Gefarm API
  * PUT /api/user/update_profile.php
  * Aggiorna profilo utente autenticato
  */

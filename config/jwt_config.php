@@ -7,7 +7,7 @@
 class JWTConfig {
     // ⚠️ IMPORTANTE: Cambia questa chiave in produzione!
     // Genera con: openssl rand -base64 32
-    public static $secret_key = "CoFMsI5cKasvyBw/qgJN78uWx15Apc/VWFZD0eOL+ICs=";
+    public static $secret_key = "N2MxPZrb2LU3l9U4yExtzCgp4feq3808kwKOWL3F8J0=";
     
     // Algoritmo di firma
     public static $algorithm = 'HS256';

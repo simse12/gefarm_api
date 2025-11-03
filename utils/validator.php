@@ -1,6 +1,6 @@
 <?php
 /**
- * Validator Utility - GeFarm API
+ * Validator Utility - Gefarm API
  * Validazione e sanitizzazione input
  */
 
@@ -110,12 +110,10 @@ class Validator {
  * Formato tipico italiano: IT001E12345678
  */
 public static function validPOD($pod) {
-    // Formati POD tipici: IT001E12345678, IT001E123456789
     if (!preg_match('/^IT\d{3}E\d{8,9}$/', $pod)) {
-        return false;
+        return ['valid' => false, 'error' => 'Codice POD non valido'];
     }
-    
-    return true;
+    return ['valid' => true];
 }
     /**
      * Sanitizza stringa

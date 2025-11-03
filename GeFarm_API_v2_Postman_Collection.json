@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Gefarm API v2.1 - Complete (Aggiornato Schema Meter)",
-    "_postman_id": "gefarm-api-v2-complete",
-    "description": "Collection completa per testare tutte le API di Gefarm con l'aggiunta di 'is_meter_owner' e i fix ai dati contatore (Chain2).",
+    "name": "Gefarm API v2.2 - Complete & Fixed",
+    "_postman_id": "gefarm-api-v22-complete",
+    "description": "Collection completa e corretta per Gefarm API v2.2 con tutti i fix implementati",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,9 +18,13 @@
     },
     {
       "key": "test_email",
-      "value": "mario.rossi@test.com",
-      "type": "string",
-      "description": "Email utilizzata per i test di registrazione e login"
+      "value": "test.user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "device_id",
+      "value": "emcengine-123456",
+      "type": "string"
     }
   ],
   "item": [
@@ -29,6 +33,24 @@
       "item": [
         {
           "name": "Test API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"API is running\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.api_status).to.eql('OK');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -36,8 +58,7 @@
               "raw": "{{base_url}}/api/test",
               "host": ["{{base_url}}"],
               "path": ["api", "test"]
-            },
-            "description": "Verifica che l'API sia operativa e restituisce info su PHP e database"
+            }
           }
         },
         {
@@ -50,32 +71,37 @@
                   "if (pm.response.code === 201) {",
                   "    var jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    ",
+                  "    // Auto-update test_email from request body",
                   "    var requestBody = JSON.parse(pm.request.body.raw);",
                   "    pm.collectionVariables.set('test_email', requestBody.email);",
-                  "    console.log('Token e Email salvati. Utente non verificato.');",
-                  "}"
+                  "    ",
+                  "    console.log('✅ User registered. Token saved. Email verification required.');",
+                  "    console.log('Email:', requestBody.email);",
+                  "}",
+                  "",
+                  "pm.test(\"Registration successful\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.token).to.be.a('string');",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"Test1234!\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"avatar_color\": \"#00853d\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/register.php",
+              "raw": "{{base_url}}/api/auth/register",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "register.php"]
-            },
-            "description": "Registra un nuovo utente. Genera un codice di verifica a 5 cifre e salva il token iniziale."
+              "path": ["api", "auth", "register"]
+            }
           }
         },
         {
@@ -88,124 +114,114 @@
                   "if (pm.response.code === 200) {",
                   "    var jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('token', jsonData.data.token);",
-                  "    console.log('Login OK. Token salvato:', jsonData.data.token);",
+                  "    console.log('✅ Login successful. Token updated.');",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('❌ Email not verified. Use verify_email endpoint first.');",
                   "}",
-                  "// Nota: Se l'utente non è verificato, atteso 403 Forbidden"
+                  "",
+                  "pm.test(\"Response is valid\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"Test1234!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/login.php",
+              "raw": "{{base_url}}/api/auth/login",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login.php"]
-            },
-            "description": "Login utente esistente. Richiede che l'utente sia verificato (`email_verified = TRUE`)."
+              "path": ["api", "auth", "login"]
+            }
           }
         }
       ]
     },
     {
-      "name": "🔃 Reset Password & Email Verification",
+      "name": "🔃 Email & Password",
       "item": [
         {
-          "name": "Verify Email (Attiva Account)",
+          "name": "Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Email verification successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"token\": \"12345\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/verify_email.php",
+              "raw": "{{base_url}}/api/auth/verify_email",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "verify_email.php"]
+              "path": ["api", "auth", "verify_email"]
             },
-            "description": "✅ Verifica l'email dell'utente utilizzando il codice a 5 cifre ricevuto. Usa 'test_email' variabile."
+            "description": "⚠️ Replace '12345' with actual 5-digit code from email/logs"
           }
         },
         {
           "name": "Resend Verification Code",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{test_email}}\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/resend_verification.php",
+              "raw": "{{base_url}}/api/auth/resend_verification",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "resend_verification.php"]
-            },
-            "description": "✅ Richiede il reinvio del codice di verifica email (invalida i precedenti). Usa 'test_email' variabile."
+              "path": ["api", "auth", "resend_verification"]
+            }
           }
         },
         {
           "name": "Request Password Reset",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{test_email}}\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/password_reset_request.php",
+              "raw": "{{base_url}}/api/auth/password_reset_request",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "password_reset_request.php"]
-            },
-            "description": "Richiede il reset della password. Un token verrà inviato all'email se esiste nel sistema."
+              "path": ["api", "auth", "password_reset_request"]
+            }
           }
         },
         {
           "name": "Confirm Reset Password",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"your-reset-token\",\n  \"new_password\": \"NewPassword123!\"\n}"
+              "raw": "{\n  \"token\": \"your-reset-token-from-email\",\n  \"new_password\": \"NewPassword123!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/password_reset_confirm.php",
+              "raw": "{{base_url}}/api/auth/password_reset_confirm",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "password_reset_confirm.php"]
-            },
-            "description": "Conferma il reset della password utilizzando il token ricevuto via email"
+              "path": ["api", "auth", "password_reset_confirm"]
+            }
           }
         }
       ]
@@ -215,20 +231,32 @@
       "item": [
         {
           "name": "Get Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('email');",
+                  "    pm.expect(jsonData.data).to.have.property('nome');",
+                  "    pm.expect(jsonData.data).to.have.property('cognome');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "url": {
-              "raw": "{{base_url}}/api/user/profile.php",
+              "raw": "{{base_url}}/api/user/profile",
               "host": ["{{base_url}}"],
-              "path": ["api", "user", "profile.php"]
-            },
-            "description": "Ottieni il profilo dell'utente autenticato"
+              "path": ["api", "user", "profile"]
+            }
           }
         },
         {
@@ -236,25 +264,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi Updated\",\n  \"avatar_color\": \"#FF5733\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/user/update_profile.php",
+              "raw": "{{base_url}}/api/user/update_profile",
               "host": ["{{base_url}}"],
-              "path": ["api", "user", "update_profile.php"]
-            },
-            "description": "Aggiorna il profilo dell'utente (nome, cognome, avatar_color)"
+              "path": ["api", "user", "update_profile"]
+            }
           }
         }
       ]
@@ -264,28 +285,43 @@
       "item": [
         {
           "name": "Register New Device",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var requestBody = JSON.parse(pm.request.body.raw);",
+                  "    pm.collectionVariables.set('device_id', requestBody.device_id);",
+                  "    console.log('✅ Device registered:', requestBody.device_id);",
+                  "}",
+                  "",
+                  "pm.test(\"Device registered successfully\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.device).to.have.property('device_id');",
+                  "    pm.expect(jsonData.data.association).to.have.property('is_meter_owner');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": \"EMC-FIX-TEST\",\n  \"device_family\": \"emc\",\n  \"device_type\": \"emcengine\",\n  \"nome_dispositivo\": \"Il mio EMC Engine\",\n  \"ssid_ap\": \"EMC-FIX-TEST\",\n  \"chain2_active\": 1,\n  \"firmware_version\": \"1.0.0\",\n  \"nickname\": \"Casa principale\",\n  \"is_meter_owner\": true\n}"
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"device_family\": \"emc\",\n  \"device_type\": \"emcengine\",\n  \"nome_dispositivo\": \"Il mio EMC Engine\",\n  \"firmware_version\": \"1.0.0\",\n  \"nickname\": \"Casa principale\",\n  \"is_meter_owner\": true\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/devices/register.php",
+              "raw": "{{base_url}}/api/devices/register",
               "host": ["{{base_url}}"],
-              "path": ["api", "devices", "register.php"]
-            },
-            "description": "CREA un nuovo dispositivo nel sistema e lo associa automaticamente all'utente. Aggiunto 'device_family' e 'is_meter_owner'."
+              "path": ["api", "devices", "register"]
+            }
           }
         },
         {
@@ -293,67 +329,88 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": \"EMC-001-TEST\",\n  \"role\": \"user\",\n  \"nickname\": \"Dispositivo condiviso\",\n  \"is_meter_owner\": false\n}"
+              "raw": "{\n  \"device_id\": \"emcengine-999999\",\n  \"role\": \"user\",\n  \"nickname\": \"Dispositivo condiviso\",\n  \"is_meter_owner\": false\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/devices/add.php",
+              "raw": "{{base_url}}/api/devices/add",
               "host": ["{{base_url}}"],
-              "path": ["api", "devices", "add.php"]
-            },
-            "description": "ASSOCIA un dispositivo già esistente all'utente. Richiede l'ID del dispositivo. Aggiunto 'is_meter_owner' per test."
+              "path": ["api", "devices", "add"]
+            }
           }
         },
         {
           "name": "List User Devices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Devices list retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.devices).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.data.devices.length > 0) {",
+                  "        pm.test(\"Device has is_meter_owner flag\", function () {",
+                  "            pm.expect(jsonData.data.devices[0]).to.have.property('is_meter_owner');",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "url": {
-              "raw": "{{base_url}}/api/devices/list.php",
+              "raw": "{{base_url}}/api/devices/list",
               "host": ["{{base_url}}"],
-              "path": ["api", "devices", "list.php"]
-            },
-            "description": "Ottieni la lista di tutti i dispositivi associati all'utente autenticato (ora include 'is_meter_owner')."
+              "path": ["api", "devices", "list"]
+            }
           }
         },
         {
           "name": "Get Device Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Device details retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.device).to.have.property('device_id');",
+                  "    pm.expect(jsonData.data.device).to.have.property('is_meter_owner');",
+                  "    ",
+                  "    pm.test(\"is_meter_owner is boolean\", function () {",
+                  "        pm.expect(jsonData.data.device.is_meter_owner).to.be.a('boolean');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "url": {
-              "raw": "{{base_url}}/api/devices/details.php?device_id=EMC-FIX-TEST",
+              "raw": "{{base_url}}/api/devices/details?device_id={{device_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "devices", "details.php"],
+              "path": ["api", "devices", "details"],
               "query": [
-                {
-                  "key": "device_id",
-                  "value": "EMC-FIX-TEST"
-                }
+                {"key": "device_id", "value": "{{device_id}}"}
               ]
-            },
-            "description": "Ottieni i dettagli completi di un dispositivo (ora include 'is_meter_owner')."
+            }
           }
         }
       ]
@@ -366,49 +423,57 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": \"EMC-FIX-TEST\",\n  \"cf\": \"RSSMRA80A01H501U\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 123\",\n  \"zip_code\": \"00100\",\n  \"citta\": \"Roma\",\n  \"provincia\": \"RM\",\n  \"pod\": \"IT001E12345678\",\n  \"email\": \"mario.rossi@test.com\",\n  \"telefono\": \"3451234567\"\n}"
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"cf\": \"RSSMRA80A01H501U\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 123\",\n  \"zip_code\": \"00100\",\n  \"citta\": \"Roma\",\n  \"provincia\": \"RM\",\n  \"pod\": \"IT001E12345678\",\n  \"email\": \"mario.rossi@test.com\",\n  \"telefono\": \"3451234567\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/meter/submit.php",
+              "raw": "{{base_url}}/api/meter/submit",
               "host": ["{{base_url}}"],
-              "path": ["api", "meter", "submit.php"]
-            },
-            "description": "Invia dati del contatore (Chain2). Richiede che l'utente sia 'is_meter_owner' per il dispositivo e cripta il CF."
+              "path": ["api", "meter", "submit"]
+            }
           }
         },
         {
           "name": "Get Active Meter Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Meter data retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    if (jsonData.data.meter_data) {",
+                  "        pm.expect(jsonData.data).to.have.property('is_meter_owner');",
+                  "        pm.test(\"CF visible only if meter owner\", function () {",
+                  "            if (jsonData.data.is_meter_owner) {",
+                  "                pm.expect(jsonData.data).to.have.property('codice_fiscale_owner');",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
+              {"key": "Authorization", "value": "Bearer {{token}}"}
             ],
             "url": {
-              "raw": "{{base_url}}/api/meter/active.php?device_id=EMC-FIX-TEST",
+              "raw": "{{base_url}}/api/meter/active?device_id={{device_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "meter", "active.php"],
+              "path": ["api", "meter", "active"],
               "query": [
-                {
-                  "key": "device_id",
-                  "value": "EMC-FIX-TEST"
-                }
+                {"key": "device_id", "value": "{{device_id}}"}
               ]
-            },
-            "description": "Ottieni i dati contatore attivi. Decripta il CF solo se l'utente è 'is_meter_owner'."
+            }
           }
         }
       ]
@@ -422,11 +487,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/debug/database_structure.php",
+              "raw": "{{base_url}}/api/debug/database_structure",
               "host": ["{{base_url}}"],
-              "path": ["api", "debug", "database_structure.php"]
+              "path": ["api", "debug", "database_structure"]
             },
-            "description": "⚠️ DEBUG ONLY - Mostra la struttura di tutte le tabelle gefarm_*"
+            "description": "⚠️ DISABLE IN PRODUCTION"
           }
         },
         {
@@ -435,11 +500,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/debug/user_devices.php",
+              "raw": "{{base_url}}/api/debug/user_devices",
               "host": ["{{base_url}}"],
-              "path": ["api", "debug", "user_devices.php"]
+              "path": ["api", "debug", "user_devices"]
             },
-            "description": "⚠️ DEBUG ONLY - Mostra associazioni utente-dispositivi (ora include 'is_meter_owner')."
+            "description": "⚠️ Path corrected from api/devices/user_devices"
           }
         }
       ]

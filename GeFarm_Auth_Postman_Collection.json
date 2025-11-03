@@ -1,0 +1,900 @@
+{
+  "info": {
+    "name": "Gefarm API v2.2 - Complete & Fixed",
+    "_postman_id": "gefarm-api-v22-complete-merged",
+    "description": "Collection completa e corretta per Gefarm API v2.2 con tutti i fix implementati e il flusso di autenticazione dettagliato.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://gefarmdb.altervista.org/gefarm_api_v2",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_email",
+      "value": "test.user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "device_id",
+      "value": "emcengine-123456",
+      "type": "string"
+    },
+    {
+      "key": "test_password",
+      "value": "TestPass123",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔓 Public Endpoints",
+      "item": [
+        {
+          "name": "Test API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"API is running\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.api_status).to.eql('OK');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "test"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔑 Authentication",
+      "item": [
+        {
+          "name": "1. Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save user_id from response",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', jsonData.data.user_id);",
+                  "    console.log('User ID saved:', jsonData.data.user_id);",
+                  "    console.log('Check email or logs for verification token');",
+                  "}",
+                  "",
+                  "// Tests",
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test('Response contains user_id', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('user_id');",
+                  "});",
+                  "",
+                  "pm.test('Email verified is false', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.email_verified).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"telefono\": \"3331234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra un nuovo utente. Genera e invia token di verifica via email."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Tests",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Email verified successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.email_verified).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"token\": \"{{reset_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify_email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify_email"
+              ]
+            },
+            "description": "Verifica l'email con il token a 6 cifre. Token deve essere preso dall'email o dai log."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Resend Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Email resent successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/resend_verification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend_verification"
+              ]
+            },
+            "description": "Reinvia l'email di verifica con un nuovo token. Rate limited: max 1 ogni 2 minuti."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Login (Before Verification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 (Email not verified)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Login blocked message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "    pm.expect(jsonData.message).to.include('Email non verificata');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login prima della verifica email. Deve restituire 403."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Login (After Verification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save JWT token",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('JWT Token saved');",
+                  "}",
+                  "",
+                  "// Tests",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('JWT token received', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "    pm.expect(jsonData.data.token).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('User data present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.user).to.have.property('id');",
+                  "    pm.expect(jsonData.data.user).to.have.property('email');",
+                  "    pm.expect(jsonData.data.user.email_verified).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login dopo verifica email. Restituisce JWT token."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Password Reset Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reset email sent message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log('Check email or logs for reset token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password_reset_request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "password_reset_request"
+              ]
+            },
+            "description": "Richiede reset password. Invia email con token a 6 cifre (valido 1 ora)."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Password Reset Confirm",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Password reset successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.message).to.include('reimpostata con successo');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"token\": \"{{reset_token}}\",\n  \"new_password\": \"NewTestPass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password_reset_confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "password_reset_confirm"
+              ]
+            },
+            "description": "Conferma reset password con token. Imposta nuova password."
+          },
+          "response": []
+        },
+        {
+          "name": "8. Login with New Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Login successful with new password', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"NewTestPass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login con la nuova password dopo reset."
+          },
+          "response": []
+        }
+      ],
+      "description": "Tutti gli endpoint di autenticazione in ordine logico di test"
+    },
+    {
+      "name": "🔒 User Endpoints",
+      "item": [
+        {
+          "name": "Get Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('email');",
+                  "    pm.expect(jsonData.data).to.have.property('nome');",
+                  "    pm.expect(jsonData.data).to.have.property('cognome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi Updated\",\n  \"avatar_color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/update_profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "update_profile"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📱 Device Endpoints",
+      "item": [
+        {
+          "name": "Register New Device",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var requestBody = JSON.parse(pm.request.body.raw);",
+                  "    pm.collectionVariables.set('device_id', requestBody.device_id);",
+                  "    console.log('✅ Device registered:', requestBody.device_id);",
+                  "}",
+                  "",
+                  "pm.test(\"Device registered successfully\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.device).to.have.property('device_id');",
+                  "    pm.expect(jsonData.data.association).to.have.property('is_meter_owner');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"device_family\": \"emc\",\n  \"device_type\": \"emcengine\",\n  \"nome_dispositivo\": \"Il mio EMC Engine\",\n  \"firmware_version\": \"1.0.0\",\n  \"nickname\": \"Casa principale\",\n  \"is_meter_owner\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devices/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devices",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Existing Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"emcengine-999999\",\n  \"role\": \"user\",\n  \"nickname\": \"Dispositivo condiviso\",\n  \"is_meter_owner\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devices/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devices",
+                "add"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List User Devices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Devices list retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.devices).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.data.devices.length > 0) {",
+                  "        pm.test(\"Device has is_meter_owner flag\", function () {",
+                  "            pm.expect(jsonData.data.devices[0]).to.have.property('is_meter_owner');",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devices/list",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devices",
+                "list"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Device Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Device details retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.device).to.have.property('device_id');",
+                  "    pm.expect(jsonData.data.device).to.have.property('is_meter_owner');",
+                  "    ",
+                  "    pm.test(\"is_meter_owner is boolean\", function () {",
+                  "        pm.expect(jsonData.data.device.is_meter_owner).to.be.a('boolean');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devices/details?device_id={{device_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devices",
+                "details"
+              ],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "{{device_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚡ Meter Data (Chain2)",
+      "item": [
+        {
+          "name": "Submit Meter Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"cf\": \"RSSMRA80A01H501U\",\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 123\",\n  \"zip_code\": \"00100\",\n  \"citta\": \"Roma\",\n  \"provincia\": \"RM\",\n  \"pod\": \"IT001E12345678\",\n  \"email\": \"mario.rossi@test.com\",\n  \"telefono\": \"3451234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/meter/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "meter",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Active Meter Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Meter data retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    if (jsonData.data.meter_data) {",
+                  "        pm.expect(jsonData.data).to.have.property('is_meter_owner');",
+                  "        pm.test(\"CF visible only if meter owner\", function () {",
+                  "            if (jsonData.data.is_meter_owner) {",
+                  "                pm.expect(jsonData.data).to.have.property('codice_fiscale_owner');",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/meter/active?device_id={{device_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "meter",
+                "active"
+              ],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "{{device_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🐛 Debug Endpoints",
+      "item": [
+        {
+          "name": "Database Structure",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/debug/database_structure",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "debug",
+                "database_structure"
+              ]
+            },
+            "description": "⚠️ DISABLE IN PRODUCTION"
+          }
+        },
+        {
+          "name": "User Devices Associations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/debug/user_devices",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "debug",
+                "user_devices"
+              ]
+            },
+            "description": "⚠️ Path corrected from api/devices/user_devices"
+          }
+        }
+      ]
+    }
+  ]
+}

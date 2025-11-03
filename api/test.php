@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Endpoint - GeFarm API
+ * Test Endpoint - Gefarm API
  * GET /api/test.php
  * Verifica che l'API sia operativa
  */
@@ -36,7 +36,7 @@ try {
         $test_data['users_count'] = $result['count'];
     }
     
-    Response::success($test_data, 'GeFarm API is running');
+    Response::success($test_data, 'Gefarm API is running');
     
 } catch (Exception $e) {
     error_log("Test endpoint error: " . $e->getMessage());

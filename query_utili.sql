@@ -36,6 +36,6 @@ FROM gefarm_user_devices
 WHERE device_id = (SELECT id FROM gefarm_devices WHERE device_id = device_id;);
 
 -- OTTIENI SSID E PASSWORD PER CONNESSIONE
-SELECT ssid_ap, device_password 
+SELECT ssid_ap, ssid_password 
 FROM gefarm_devices 
 WHERE device_id = device_id;

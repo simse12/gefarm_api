@@ -1,6 +1,6 @@
 <?php
 /**
- * JWT Helper - GeFarm API
+ * JWT Helper - Gefarm API
  * Gestione JSON Web Tokens (senza librerie esterne)
  */
 

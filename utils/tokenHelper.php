@@ -1,6 +1,6 @@
 <?php
 /**
- * TokenHelper - GeFarm API
+ * TokenHelper - Gefarm API
  * Genera stringhe e codici per token di verifica e reset.
  */
 

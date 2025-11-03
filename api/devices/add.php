@@ -1,6 +1,6 @@
 <?php
 /**
- * Add Device Endpoint - GeFarm API
+ * Add Device Endpoint - Gefarm API
  * POST /api/devices/add.php
  * Aggiungi/associa dispositivo all'utente autenticato
  */

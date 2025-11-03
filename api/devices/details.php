@@ -1,6 +1,6 @@
 <?php
 /**
- * Device Details Endpoint - GeFarm API
+ * Device Details Endpoint - Gefarm API
  * GET /api/devices/details.php?device_id=XXX
  * Ottieni dettagli dispositivo e dati contatore
  */
@@ -20,7 +20,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Device.php';
 require_once __DIR__ . '/../../models/DeviceMeterData.php';
 require_once __DIR__ . '/../../utils/response.php';
-require_once __DIR__ . '/../../utils/encryption_config.php'; 
+require_once __DIR__ . '/../../config/encryption_config.php'; 
 
 // Solo GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {

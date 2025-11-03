@@ -1,6 +1,6 @@
 <?php
 /**
- * Authentication Middleware - GeFarm API
+ * Authentication Middleware - Gefarm API
  * Verifica JWT token per endpoint protetti
  */
 

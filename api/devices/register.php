@@ -38,7 +38,8 @@ try {
     }
     
     // Validazione campi richiesti
-    $required_fields = ['device_id', 'device_family', 'device_type', 'nome_dispositivo']; 
+    // Aggiunto 'device_family' e i campi Dataplate 'du', 'k1', 'k2', 'fiv'
+    $required_fields = ['device_id', 'device_family', 'device_type', 'nome_dispositivo'];
     $missing = [];
     
     foreach ($required_fields as $field) {
@@ -59,16 +60,28 @@ try {
         );
     }
     
-    // Validazione device_type (ENUM)
+    // Validazione device_type (ENUM) - Resa non-nulla se device_family è 'emc'
     $valid_types = ['emcengine', 'emcinverter', 'emcbox'];
-    if (!in_array($input['device_type'], $valid_types)) {
-        Response::validationError(
-            ['device_type' => 'Tipo dispositivo non valido. Valori ammessi: ' . implode(', ', $valid_types)]
-        );
+    if ($input['device_family'] === 'emc') {
+        if (!in_array($input['device_type'], $valid_types)) {
+            Response::validationError(
+                ['device_type' => 'Tipo dispositivo non valido per la famiglia "emc". Valori ammessi: ' . implode(', ', $valid_types)]
+            );
+        }
+    } else {
+        // Se non è 'emc', device_type deve essere validato solo se presente, altrimenti passa.
+        // Se è sempre richiesto, decommenta il blocco sopra e rimuovi l'else.
+        // Nel tuo schema SQL, device_type è NOT NULL, quindi lo manteniamo richiesto e validato.
+        if (!in_array($input['device_type'], $valid_types)) {
+            Response::validationError(
+                ['device_type' => 'Tipo dispositivo non valido. Valori ammessi: ' . implode(', ', $valid_types)]
+            );
+        }
     }
     
-    // Validazione device_id (formato emcengine-xxxxx)
-    if (!preg_match('/^emcengine-[0-9]+$/i', $input['device_id'])) { 
+    // ✅ Validazione device_id (formato emcengine-xxxxx) - Aggiornato secondo le tue specifiche
+    // Assumo che l'input 'device_id' sia del tipo 'emcengine-123456' e non solo '123456'
+    if (!preg_match('/^emcengine-[a-zA-Z0-9]+$/i', $input['device_id'])) { 
         Response::validationError(
             ['device_id' => 'Formato device_id non valido. Deve essere: emcengine-NNNNNN']
         );
@@ -84,30 +97,22 @@ try {
     
     // Crea dispositivo
     $device->device_id = $input['device_id'];
-    $device->device_family = $input['device_family'];
+    $device->device_family = $input['device_family']; // ✅ Nuovo campo
     $device->device_type = $input['device_type'];
     $device->nome_dispositivo = $input['nome_dispositivo'];
-    $device->ssid_ap = $input['device_id']; // OBBLIGATORIO: ssid_ap è uguale a device_id
-    
-    // Gestione password: non viene inviata, impostiamo a NULL.
-    $device->ssid_password = null; 
+    $device->ssid_ap = $input['device_id']; // ✅ Impostato OBBLIGATORIAMENTE come device_id
     
     // Campi opzionali
     $device->chain2_active = isset($input['chain2_active']) ? (int)$input['chain2_active'] : 0;
     $device->firmware_version = $input['firmware_version'] ?? null;
+    $device->ssid_password = $input['ssid_password'] ?? null; // ✅ Aggiunto se vuoi riceverlo
     
-    // Campi Dataplate: Assegnati con operatore null coalescing (??) per supportare NULL
+    // ✅ Campi Dataplate
     $device->du = $input['du'] ?? null;
     $device->k1 = $input['k1'] ?? null;
     $device->k2 = $input['k2'] ?? null;
     $device->fiv = $input['fiv'] ?? null;
-    
-    // Imposta dataplate_synced_at solo se almeno un campo dataplate è presente
-    if ($device->du !== null || $device->k1 !== null || $device->k2 !== null || $device->fiv !== null) {
-        $device->dataplate_synced_at = date('Y-m-d H:i:s');
-    } else {
-        $device->dataplate_synced_at = null;
-    }
+    $device->dataplate_synced_at = date('Y-m-d H:i:s'); // Impostato al momento della registrazione
 
     // Log per debug
     error_log("Creating device: " . json_encode([
@@ -116,7 +121,7 @@ try {
         'device_family' => $device->device_family,
         'nome_dispositivo' => $device->nome_dispositivo,
         'ssid_ap' => $device->ssid_ap,
-        'du' => $device->du
+        // ... aggiungi qui gli altri campi se vuoi vederli nel log
     ]));
     
     if (!$device->create()) {
@@ -126,19 +131,15 @@ try {
     
     error_log("Device created with ID: {$device->id}");
     
-    // Associa automaticamente il dispositivo all'utente
+    // Associa automaticamente il dispositivo all'utente come "owner"
     $nickname = $input['nickname'] ?? null;
     
-    // ⭐️ AGGIORNAMENTO CHIAVE: Gestione del flag is_meter_owner
-    $is_meter_owner = isset($input['is_meter_owner']) ? (bool)$input['is_meter_owner'] : false;
-    
-    // Passa il nuovo flag al metodo addToUser
-    if (!$device->addToUser($auth_data->user_id, $device->id, 'owner', $nickname, $is_meter_owner)) {
-        error_log("Failed to associate device {$device->id} to user {$auth_data->user_id} with is_meter_owner={$is_meter_owner}");
+    if (!$device->addToUser($auth_data->user_id, $device->id, 'owner', $nickname)) {
+        error_log("Failed to associate device {$device->id} to user {$auth_data->user_id}");
         Response::serverError('Dispositivo creato ma errore nell\'associazione all\'utente. Contatta il supporto.');
     }
     
-    error_log("Device {$device->id} associated to user {$auth_data->user_id} as owner (Meter Owner: " . ($is_meter_owner ? 'Yes' : 'No') . ")");
+    error_log("Device {$device->id} associated to user {$auth_data->user_id} as owner");
     
     // Ottieni dispositivo completo
     $device_data = $device->getById($device->id);
@@ -147,8 +148,7 @@ try {
         'device' => $device_data,
         'association' => [
             'role' => 'owner',
-            'nickname' => $nickname,
-            'is_meter_owner' => $is_meter_owner // Ritorna lo stato dell'owner
+            'nickname' => $nickname
         ]
     ], 'Dispositivo registrato e associato con successo', 201);
     

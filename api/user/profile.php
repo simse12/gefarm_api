@@ -1,6 +1,6 @@
 <?php
 /**
- * Profile Endpoint - GeFarm API
+ * Profile Endpoint - Gefarm API
  * GET /api/user/profile.php
  * Ottieni profilo utente autenticato
  */

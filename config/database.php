@@ -1,6 +1,6 @@
 <?php
 /**
- * Database Configuration - GeFarm API
+ * Database Configuration - Gefarm API
  * Connessione MySQL con singleton pattern
  */
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Database Structure Endpoint - GeFarm API
+ * Database Structure Endpoint - Gefarm API
  * GET /api/debug/database_structure.php
  * Mostra struttura tabelle gefarm_* (SOLO DEBUG - RIMUOVERE IN PRODUZIONE!)
  */

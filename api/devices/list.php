@@ -1,6 +1,6 @@
 <?php
 /**
- * List Devices Endpoint - GeFarm API
+ * List Devices Endpoint - Gefarm API
  * GET /api/devices/list.php
  * Ottieni lista dispositivi dell'utente autenticato
  */

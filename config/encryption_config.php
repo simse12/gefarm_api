@@ -1,13 +1,13 @@
 <?php
 /**
- * Encryption Configuration - GeFarm API
+ * Encryption Configuration - Gefarm API
  * Configurazione per criptazione AES-256
  */
 
 class EncryptionConfig {
     // ⚠️ IMPORTANTE: Chiave di criptazione (DEVE essere esattamente 32 caratteri)
     // Genera con: openssl rand -hex 16
-    private static $encryption_key = "d9c4ce53d218d228665c9dbfd11a983c"; // 32 chars
+    private static $encryption_key = "a6d94a23221bb7f46ee8c9138f782e46"; // 32 chars
     
     // Metodo di criptazione
     private static $cipher_method = "AES-256-CBC";

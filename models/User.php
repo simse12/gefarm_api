@@ -1,6 +1,6 @@
 <?php
 /**
- * User Model - GeFarm API
+ * User Model - Gefarm API
  * Gestione tabella gefarm_users
  */
 
@@ -26,6 +26,7 @@ class User {
     // Proprietà
     public $id;
     public $email;
+    public $telefono;
     public $password_hash;
     public $nome;
     public $cognome;
@@ -51,18 +52,20 @@ class User {
      */
     public function create() {
         $query = "INSERT INTO " . $this->table . " 
-                     (email, password_hash, nome, cognome, avatar_color, email_verified) 
+                     (email, telefono, password_hash, nome, cognome, avatar_color, email_verified) 
                      VALUES 
-                     (:email, :password_hash, :nome, :cognome, :avatar_color, :email_verified)";
+                     (:email, :telefono, :password_hash, :nome, :cognome, :avatar_color, :email_verified)";
         
         $stmt = $this->conn->prepare($query);
         
         // Sanitizza input
         $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->nome = htmlspecialchars(strip_tags($this->nome));
-        $this->cognome = htmlspecialchars(strip_tags($this->cognome));
+        $this->telefono = isset($this->telefono) ? htmlspecialchars(strip_tags($this->telefono)) : null;
+        $this->nome = strtoupper(htmlspecialchars(strip_tags($this->nome)));
+        $this->cognome = strtoupper(htmlspecialchars(strip_tags($this->cognome)));
         $this->avatar_color = $this->avatar_color ?? '#00853d';
         $this->email_verified = $this->email_verified ?? 0;
+       
         
         // Hash password
         $password_to_hash = $this->password_hash;
@@ -70,6 +73,7 @@ class User {
         
         // Bind parametri
         $stmt->bindParam(':email', $this->email);
+        $stmt->bindParam(':telefono', $this->telefono);
         $stmt->bindParam(':password_hash', $this->password_hash);
         $stmt->bindParam(':nome', $this->nome);
         $stmt->bindParam(':cognome', $this->cognome);
@@ -90,12 +94,27 @@ class User {
      * Ottieni utente per Email
      */
     public function getByEmail($email) {
-        $query = "SELECT id, password_hash, email, nome, cognome, avatar_path, avatar_color, 
+        $query = "SELECT id, password_hash, email, telefono, nome, cognome, avatar_path, avatar_color, 
                      email_verified, created_at, updated_at 
                      FROM " . $this->table . " WHERE email = :email LIMIT 1";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+       /**
+     * Ottieni utente per Telefono
+     */
+    public function getByTel($telefono) {
+        $query = "SELECT id, password_hash, email, telefono, nome, cognome, avatar_path, avatar_color, 
+                     email_verified, created_at, updated_at 
+                     FROM " . $this->table . " WHERE telefono = :telefono LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':telefono', $telefono);
         $stmt->execute();
         
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -107,7 +126,7 @@ class User {
      */
     public function login($email, $password) {
         // Seleziona tutti i campi necessari, inclusa email_verified
-        $query = "SELECT id, password_hash, email, nome, cognome, email_verified FROM " . $this->table . " WHERE email = :email LIMIT 1";
+        $query = "SELECT id, password_hash, email, telefono, nome, cognome, email_verified FROM " . $this->table . " WHERE email = :email LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -150,7 +169,7 @@ class User {
      * Ottieni utente per ID
      */
     public function getById($id) {
-        $query = "SELECT id, email, nome, cognome, avatar_path, avatar_color, 
+        $query = "SELECT id, email, telefono, nome, cognome, avatar_path, avatar_color, 
                      email_verified, created_at, updated_at 
                      FROM " . $this->table . " WHERE id = :id LIMIT 1";
         
@@ -168,7 +187,7 @@ class User {
         $fields = [];
         $params = [':id' => $id];
         
-        $allowed_fields = ['nome', 'cognome', 'avatar_path', 'avatar_color'];
+        $allowed_fields = ['nome', 'cognome', 'telefono', 'avatar_path', 'avatar_color'];
         
         foreach ($allowed_fields as $field) {
             if (isset($data[$field])) {

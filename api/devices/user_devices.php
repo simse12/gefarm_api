@@ -1,6 +1,6 @@
 <?php
 /**
- * Debug User Devices Endpoint - GeFarm API
+ * Debug User Devices Endpoint - Gefarm API
  * GET /api/debug/user_devices.php
  * Mostra tutte le associazioni utente-dispositivi (SOLO DEBUG!)
  */
